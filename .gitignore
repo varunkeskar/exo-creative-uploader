@@ -1,0 +1,20 @@
+# Runtime data
+data/token_cache.json
+data/country_map.json
+data/campaign_countries.json
+data/campaign_geo.json
+data/geo_sets.json
+data/uploads/
+
+# Logs
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
