@@ -62,10 +62,7 @@ define('FORMAT_CATEGORY_MAP', [
 define('FORMAT_SPECS', [
     'banner' => [
         'label' => 'Banner',
-        'accepted_sizes' => [
-            [300, 250], [728, 90], [160, 600], [468, 60], [120, 600],
-            [300, 100], [300, 50], [320, 50], [320, 480], [580, 400],
-        ],
+        'accepted_sizes' => [],  // Let ExoClick API validate — they support many sizes
         'allowed_mime' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
         'text_fields' => [],
     ],
@@ -114,9 +111,7 @@ define('FORMAT_SPECS', [
     ],
     'popunder' => [
         'label' => 'Popunder',
-        'accepted_sizes' => [
-            [1600, 900], [900, 1600],
-        ],
+        'accepted_sizes' => [],  // Let ExoClick API validate
         'allowed_mime' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
         'text_fields' => [],
     ],

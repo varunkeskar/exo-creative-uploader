@@ -305,27 +305,25 @@ function handleCreateVariations(ExoClickClient $client): void {
     $successCount = 0;
     $failCount = 0;
 
-    // Cache offer IDs per campaign to avoid redundant API calls
-    $offerIdCache = [];
+    // Cache variation defaults (offer ID + library URL ID) per campaign
+    $defaultsCache = [];
 
     foreach ($campaignIds as $campaignId) {
         $campaignId = (int)$campaignId;
 
-        // Use user-selected offer, or fall back to auto-detect from campaign
-        if ($userOfferId) {
-            $offerId = $userOfferId;
-        } else {
-            if (!isset($offerIdCache[$campaignId])) {
-                $offerId = $client->getCampaignOfferId($campaignId);
-                $offerIdCache[$campaignId] = $offerId;
-                if ($offerId) {
-                    writeLog("Campaign $campaignId → idoffer=$offerId (auto-detected)");
-                } else {
-                    writeLog("Campaign $campaignId has no existing offer, variations may fail", 'WARN');
-                }
+        // Resolve offer ID and library URL ID from existing variations
+        if (!isset($defaultsCache[$campaignId])) {
+            $defaults = $client->getCampaignVariationDefaults($campaignId);
+            $defaultsCache[$campaignId] = $defaults;
+            if ($defaults['offerId']) {
+                writeLog("Campaign $campaignId → idoffer={$defaults['offerId']} (auto-detected)");
             }
-            $offerId = $offerIdCache[$campaignId];
+            if ($defaults['libraryUrlId']) {
+                writeLog("Campaign $campaignId → id_library_url={$defaults['libraryUrlId']} (auto-detected)");
+            }
         }
+        $offerId = $userOfferId ?? $defaultsCache[$campaignId]['offerId'];
+        $libraryUrlId = $defaultsCache[$campaignId]['libraryUrlId'];
 
         foreach ($variations as $variation) {
             // Validate text fields
@@ -347,6 +345,9 @@ function handleCreateVariations(ExoClickClient $client): void {
             // Include idoffer from campaign's existing variations
             if ($offerId) {
                 $payload['idoffer'] = (string)$offerId;
+            }
+            if ($libraryUrlId) {
+                $payload['id_library_url'] = (string)$libraryUrlId;
             }
 
             $createResult = $client->createVariation($campaignId, $payload);
@@ -442,25 +443,25 @@ function handleCreateVariationsBatch(ExoClickClient $client): void {
         flush();
     };
 
-    // Cache offer IDs per campaign
-    $offerIdCache = [];
+    // Cache variation defaults (offer ID + library URL ID) per campaign
+    $defaultsCache = [];
 
     foreach ($campaignIds as $campaignId) {
         $campaignId = (int)$campaignId;
 
-        // Resolve offer ID
-        if ($userOfferId) {
-            $offerId = $userOfferId;
-        } else {
-            if (!isset($offerIdCache[$campaignId])) {
-                $offerId = $client->getCampaignOfferId($campaignId);
-                $offerIdCache[$campaignId] = $offerId;
-                if ($offerId) {
-                    writeLog("Batch: campaign $campaignId → idoffer=$offerId (auto-detected)");
-                }
+        // Resolve offer ID and library URL ID from existing variations
+        if (!isset($defaultsCache[$campaignId])) {
+            $defaults = $client->getCampaignVariationDefaults($campaignId);
+            $defaultsCache[$campaignId] = $defaults;
+            if ($defaults['offerId']) {
+                writeLog("Batch: campaign $campaignId → idoffer={$defaults['offerId']} (auto-detected)");
             }
-            $offerId = $offerIdCache[$campaignId];
+            if ($defaults['libraryUrlId']) {
+                writeLog("Batch: campaign $campaignId → id_library_url={$defaults['libraryUrlId']} (auto-detected)");
+            }
         }
+        $offerId = $userOfferId ?? $defaultsCache[$campaignId]['offerId'];
+        $libraryUrlId = $defaultsCache[$campaignId]['libraryUrlId'];
 
         // Build payloads for all variations on this campaign
         $payloads = [];
@@ -485,6 +486,9 @@ function handleCreateVariationsBatch(ExoClickClient $client): void {
             $payload = buildVariationPayload($format, $varCopy);
             if ($offerId) {
                 $payload['idoffer'] = (string)$offerId;
+            }
+            if ($libraryUrlId) {
+                $payload['id_library_url'] = (string)$libraryUrlId;
             }
             $payloads[] = ['idx' => $vIdx, 'payload' => $payload];
         }

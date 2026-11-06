@@ -468,15 +468,30 @@ class ExoClickClient {
      * @return int|null  The offer ID, or null if not found
      */
     public function getCampaignOfferId(int $campaignId): ?int {
-        $resp = $this->apiCall("/campaigns/$campaignId", [], 'GET');
-        $variations = $resp['result']['variations'] ?? [];
+        $defaults = $this->getCampaignVariationDefaults($campaignId);
+        return $defaults['offerId'];
+    }
+
+    /**
+     * Get reusable defaults (offer ID + library URL ID) from a campaign's existing variations.
+     * Makes a single API call to the variations endpoint.
+     * @return array{offerId: int|null, libraryUrlId: int|null}
+     */
+    public function getCampaignVariationDefaults(int $campaignId): array {
+        $resp = $this->apiCall("/campaigns/$campaignId/variation", [], 'GET');
+        $variations = $resp['variations'] ?? [];
+        $offerId = null;
+        $libraryUrlId = null;
         foreach ($variations as $v) {
-            $offerId = $v['offer_id'] ?? null;
-            if ($offerId) {
-                return (int)$offerId;
+            if ($offerId === null && !empty($v['idoffer'])) {
+                $offerId = (int)$v['idoffer'];
             }
+            if ($libraryUrlId === null && !empty($v['idvariations_url'])) {
+                $libraryUrlId = (int)$v['idvariations_url'];
+            }
+            if ($offerId !== null && $libraryUrlId !== null) break;
         }
-        return null;
+        return ['offerId' => $offerId, 'libraryUrlId' => $libraryUrlId];
     }
 
     /**
@@ -646,7 +661,7 @@ class ExoClickClient {
                     $errorMsg = $decoded['error'] ?? $decoded['message'] ?? "HTTP $httpCode";
                     if (is_array($errorMsg)) $errorMsg = implode('; ', $errorMsg);
                     $results[$idx] = ['variation_id' => null, 'error' => $errorMsg];
-                    writeLog("Batch variation error (campaign=$campaignId, idx=$idx): $errorMsg", 'ERROR');
+                    writeLog("Batch variation error (campaign=$campaignId, idx=$idx, HTTP $httpCode): $errorMsg", 'ERROR');
                 }
 
                 // Queue next pending
